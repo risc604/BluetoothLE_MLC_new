@@ -1,6 +1,7 @@
 package com.tomcat.mlc_rd.bluetoothle_mlc_new;
 
 import android.bluetooth.BluetoothDevice;
+import android.content.Context;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -13,19 +14,40 @@ import java.util.HashMap;
 /**
  * Created by tomcat on 2016/4/7.
  */
-public class DeviceListAdapter extends BaseAdapter
+public class BluetoothLeAdapter extends BaseAdapter
 {
     private final ArrayList<BluetoothDevice>    mLeDevices;
     private final HashMap<String, Integer>      rssiMap;
     private LayoutInflater                      mInflator;
     private ViewHolder                          viewHolder;
 
-    public DeviceListAdapter()
+
+    public BluetoothLeAdapter(Context context /*, ArrayList<BluetoothDevice> list*/)
     {
         super();
         mLeDevices = new ArrayList<BluetoothDevice>();
         rssiMap = new HashMap<String, Integer>();
-        //mInflator = MainActivity.class.getLayoutInflater();
+        mInflator = LayoutInflater.from(context);
+    }
+
+
+    public void addDevice(BluetoothDevice device, int rssi)
+    {
+        if (!mLeDevices.contains(device))
+        {
+            mLeDevices.add(device);
+            rssiMap.put(device.getAddress(), rssi);
+        }
+    }
+
+    public BluetoothDevice getDevice(int position)
+    {
+        return mLeDevices.get(position);
+    }
+
+    public int getRssi(String devcieAddress)
+    {
+        return rssiMap.get(devcieAddress);
     }
 
     /**
@@ -36,7 +58,7 @@ public class DeviceListAdapter extends BaseAdapter
     @Override
     public int getCount()
     {
-        return 0;
+        return mLeDevices.size();
     }
 
     /**
@@ -49,7 +71,8 @@ public class DeviceListAdapter extends BaseAdapter
     @Override
     public Object getItem(int position)
     {
-        return null;
+        //return null;
+        return mLeDevices.get(position);
     }
 
     /**
@@ -61,7 +84,8 @@ public class DeviceListAdapter extends BaseAdapter
     @Override
     public long getItemId(int position)
     {
-        return 0;
+        //return 0;
+        return position;
     }
 
     /**
@@ -85,7 +109,37 @@ public class DeviceListAdapter extends BaseAdapter
     @Override
     public View getView(int position, View convertView, ViewGroup parent)
     {
-        return null;
+        ViewHolder  viewHolder;
+
+        if (convertView == null)
+        {
+            convertView = mInflator.inflate(R.layout.list_item, null);
+            viewHolder = new ViewHolder();
+            viewHolder.deviceName = (TextView)convertView.findViewById(R.id.tvName);
+            viewHolder.deviceAddress = (TextView)convertView.findViewById(R.id.tvAddress);
+            viewHolder.deviceRssi = (TextView)convertView.findViewById(R.id.tvRssi);
+            convertView.setTag(viewHolder);
+        }
+        else
+        {
+            viewHolder = (ViewHolder) convertView.getTag();
+        }
+
+        BluetoothDevice device = mLeDevices.get(position);
+        final String    deviceName = device.getName();
+        if ((deviceName != null) && (deviceName.length() > 0))
+        {
+            viewHolder.deviceName.setText(deviceName);
+        }
+        else
+        {
+            viewHolder.deviceName.setText(R.string.unknown_device);
+            viewHolder.deviceRssi.setText(rssiMap.get(device.getAddress()));
+        }
+        viewHolder.deviceAddress.setText(device.getAddress());
+
+        return convertView;
+        //return null;
     }
 
     static class ViewHolder

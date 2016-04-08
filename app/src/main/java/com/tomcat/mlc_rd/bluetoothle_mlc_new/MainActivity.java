@@ -2,29 +2,32 @@ package com.tomcat.mlc_rd.bluetoothle_mlc_new;
 
 import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothManager;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
+import android.os.Handler;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
+import android.widget.ListView;
 import android.widget.Toast;
-
-import java.util.logging.Handler;
 
 public class MainActivity extends AppCompatActivity
 {
     private static final String TAG = MainActivity.class.getSimpleName();
 
-    private DeviceListAdapter   mLeDeviceListAdapter;
+    private BluetoothLeAdapter  mLeDeviceListAdapter;
     private BluetoothAdapter    mBluetoothAdapter;
     private boolean             mScanning;
     private Handler             mHandler;
 
-
+    private final String        MLC_DEVICE_NAME = "3MW1-4B";
+    private static final long   SCAN_PERIOD =  10000;   //10s
     private static final int    REQUEST_ENABLE_BT = 100;
 
+    ListView                    bleDeviceList;
 
 
     @Override
@@ -47,6 +50,8 @@ public class MainActivity extends AppCompatActivity
             finish();
             return;
         }
+
+        bleDeviceList = (ListView)findViewById(R.id.listView);
 
         //other initial
     }
@@ -76,8 +81,9 @@ public class MainActivity extends AppCompatActivity
         }
 
         Log.i(TAG, "onResume...");
-        mLeDeviceListAdapter = new DeviceListAdapter();
-        s
+        mLeDeviceListAdapter = new BluetoothLeAdapter(getApplicationContext());
+        bleDeviceList.setAdapter(mLeDeviceListAdapter);
+        scanLeDevice(true);
 
     }
 
@@ -116,5 +122,63 @@ public class MainActivity extends AppCompatActivity
                 break;
         }
     }
+
+    private void scanLeDevice(boolean enable)
+    {
+        if (enable)
+        {
+            mHandler.postDelayed(new Runnable()
+            {
+                @Override
+                public void run()
+                {
+                    mScanning = false;
+                    mBluetoothAdapter.stopLeScan(mLeScanCallback);
+                    invalidateOptionsMenu();
+                }
+            }, SCAN_PERIOD);
+
+            mScanning = true;
+            mBluetoothAdapter.startLeScan(mLeScanCallback);
+        }
+        else
+        {
+            mScanning = false;
+            mBluetoothAdapter.stopLeScan(mLeScanCallback);
+        }
+
+        invalidateOptionsMenu();
+    }
+
+
+    private BluetoothAdapter.LeScanCallback   mLeScanCallback =
+            new BluetoothAdapter.LeScanCallback()
+            {
+                /**
+                 * Callback reporting an LE device found during a device scan initiated
+                 * by the {@link BluetoothAdapter#startLeScan} function.
+                 *
+                 * @param device     Identifies the remote device
+                 * @param rssi       The RSSI value for the remote device as reported by the
+                 *                   Bluetooth hardware. 0 if no RSSI value is available.
+                 * @param scanRecord The content of the advertisement record offered by
+                 */
+                @Override
+                public void onLeScan(final BluetoothDevice device, final int rssi, byte[] scanRecord)
+                {
+                    runOnUiThread(new Runnable()
+                    {
+                        @Override
+                        public void run()
+                        {
+                            if ((device!=null) && device.equals(MLC_DEVICE_NAME))
+                            {
+                                mLeDeviceListAdapter.addDevice(device, rssi);
+                                mLeDeviceListAdapter.notifyDataSetChanged();
+                            }
+                        }
+                    });
+                }
+            };
 }
 
